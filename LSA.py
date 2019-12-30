@@ -1,0 +1,109 @@
+import numpy as np
+from numpy import zeros
+from scipy.linalg import svd
+import math
+import pymysql
+
+
+class LSA(object):
+    def __init__(self, stopwords, ignorechars):
+        self.stopwords = stopwords       # exclude words without actual meaning like "the", "and", etc.
+        self.ignorechars = ignorechars   # exclude punctuation marks
+        self.wdict = {}
+        self.dcount = 0  # number of docs
+        self.keys = []
+        self.A = 0
+        self.U = 0
+        self.s = 0
+        self.Vh = 0
+        self.count_matrix = 0
+
+    def parse(self, doc):
+        """
+        Parse the document, aka. calculate the words in a doc. wdict["book"] = [3, 4] represents the word "book"
+        appears in both 3th and 4th doc
+        ------
+        Parameters
+            doc: Class Sentence, with pure_text attribute
+        """
+
+        words = doc.pure_text.split()
+        for w in words:
+            # lowercase all letters and delete the ignored words
+            b = bytearray(w.lower(), 'utf-8')
+            w = (b.translate(None, delete=bytearray(self.ignorechars, 'utf-8'))).decode('utf-8')
+            if w in self.stopwords:
+                continue
+            elif w in self.wdict:
+                self.wdict[w].append(self.dcount)
+            else:
+                self.wdict[w] = [self.dcount]
+        self.dcount += 1
+
+    def build_count_matrix(self):
+        """
+        Build the T*D matrix. The element Axy is the times Term x appears in Doc y.
+        :return: None
+        """
+        self.keys = [k for k in self.wdict.keys() if len(self.wdict[k]) >= 1]
+        self.keys.sort()
+        self.A = zeros([len(self.keys), self.dcount])  # initialize the matrix
+        for i, k in enumerate(self.keys):
+            for d in self.wdict[k]:
+                self.A[i, d] += 1
+        self.count_matrix = self.A.copy()
+
+    def printA(self):
+        print(self.A)
+
+    def TFIDF(self):
+        """
+        Modify the counts with TF-IDF.
+        After calling, TF-IDF value, or the A[i, j] is 0 under two circumstances only: doc k doesn't contain word key[i]
+            in it; word key[i] appears in every doc.
+        """
+        # sum up numbers on the same column, how many keys every doc contains.
+        WordsPerDoc = np.sum(self.A, axis=0)
+        # how many docs the key belongs to.
+        DocsPerWord = np.sum(np.asarray(self.A > 0, 'i'), axis=1)
+        rows, cols = self.A.shape
+        for i in range(rows):
+            for j in range(cols):
+                self.A[i, j] = (float(self.A[i, j]) / WordsPerDoc[j]) * math.log(float(cols) / DocsPerWord[i])
+
+    def svd_cal(self):
+        """
+        Singular Value Decomposition
+        :return: Matrix U, tuple s, Matrix Vh
+        """
+        self.U, self.s, self.Vh = svd(self.A, full_matrices=False)
+
+    def get_similarity(self, k, i, j):
+
+        """
+        Choose top K values from tuple s and calculate the similarity between doc i and doc j.
+
+        :return: cosine similarity value
+        """
+
+        sigma = np.zeros([k, k])
+        for x in range(k):
+            sigma[x, x] = self.s[x]
+
+        a = np.mat(sigma.dot(self.Vh[:, i][:k]))
+        b = np.mat(sigma.dot(self.Vh[:, j][:k]))
+        # print("a:", a, "b:", b)
+        num = float(a * b.T)
+        denom = np.linalg.norm(a) * np.linalg.norm(b)
+        return num / denom if denom != 0 else 0
+
+    def get_max_similarity(self, k, j, ref_num):
+        max_simi = self.get_similarity(k, 0, j)
+        for i in range(0, ref_num):
+            max_simi = max(max_simi, self.get_similarity(k, i, j))
+        return max_simi
+
+
+
+
+
