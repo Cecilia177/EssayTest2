@@ -81,7 +81,7 @@ if __name__ == '__main__':
             # {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4], 'gamma': [0.01, 1, 5, 10, 100]}
         ]
 
-    cv = ShuffleSplit(n_splits=10, test_size=0.2, random_state=0)
+    cv = ShuffleSplit(n_splits=10, test_size=0.3, random_state=0)
 
     # get the best classifier through CV
     # svc = svm.SVC(probability=False)
@@ -100,7 +100,10 @@ if __name__ == '__main__':
     score_func = make_scorer(pearson_cor, greater_is_better=True)
 
     # Regression model
-    X_rg, y_rg = extract_data(conn, course="202英语二")
+    features1 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio']
+    features2 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade']
+    features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'np', 'vp']
+    X_rg, y_rg = extract_data(conn, course="202英语二", features=features2)
 
     scaler = MinMaxScaler()
     X_rg_scaled = scaler.fit_transform(X_rg)
