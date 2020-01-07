@@ -92,7 +92,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     axes[0].fill_between(train_sizes, test_scores_mean - test_scores_std,
                          test_scores_mean + test_scores_std, alpha=0.1,
                          color="g")
-    print("train sizes:", train_sizes, "train scores:", train_scores_mean)
+    # print("train sizes:", train_sizes, "train scores:", train_scores_mean)
     axes[0].plot(train_sizes, train_scores_mean, 'o-', color="r",
                  label="Training score")
     axes[0].plot(train_sizes, test_scores_mean, 'o-', color="g",
@@ -117,7 +117,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     axes[2].set_ylabel("Score")
     axes[2].set_title("Performance of the model")
 
-    return plt
+    return plt, test_scores_mean
 
 
 # fig, axes = plt.subplots(3, 2, figsize=(10, 15))

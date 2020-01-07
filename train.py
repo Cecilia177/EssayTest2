@@ -5,18 +5,19 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.model_selection import learning_curve, validation_curve, train_test_split, cross_val_score
 import matplotlib.pyplot as plt
 from sklearn.model_selection import GridSearchCV, ShuffleSplit
-from correlation import pearson_cor
+from correlation import pearson_cor, spearman_cor
 from sklearn.metrics import make_scorer
 from learningcurve import plot_learning_curve
-from sklearn.svm import SVR
+from sklearn.svm import SVR, SVC
+from sklearn.feature_selection import RFECV, SelectKBest, f_regression, mutual_info_regression
 import pymysql
 import traceback
 import math
 
 
 def cross_val(estimator, params, X_train, y_train, score, cv, n_jobs):
-
-    clf = GridSearchCV(estimator=estimator, param_grid=params, scoring=score, cv=cv, return_train_score=True, n_jobs=n_jobs)
+    clf = GridSearchCV(estimator=estimator, param_grid=params, scoring=score, cv=cv, return_train_score=True,
+                       n_jobs=n_jobs)
     clf.fit(X_train, y_train)
     return clf.best_estimator_, clf.best_params_
 
@@ -63,8 +64,50 @@ def plot(x_value, y_value_list):
     plt.show()
 
 
-if __name__ == '__main__':
+def regression(X, y, cv):
+    parameters = [
+        {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
+        {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 1000], 'gamma': [0.01, 0.5, 1, 5, 10, 100]},
+        # {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4], 'gamma': [0.01, 1, 5, 10, 100]}
+    ]
+    # define a scoring function
+    score_func = make_scorer(pearson_cor, greater_is_better=True)
+    svr = SVR()
 
+    # Get the best model through CV
+    best_svr, best_params_rg = cross_val(svr, params=parameters, X_train=X,
+                                         y_train=y, score=score_func, cv=cv, n_jobs=-1)
+
+    title_rg = r"Learning Curves (SVR, rbf kernel)"
+    plt, test_scores = plot_learning_curve(best_svr, title_rg, X, y, ylim=(0.0, 1.0),
+                        cv=cv, n_jobs=4, scoring=score_func)
+    plt.show()
+    return best_svr, test_scores
+
+
+def classification(X, y, cv):
+    parameters = [
+        {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
+        {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 400, 1000, 2500], 'gamma': [0.01, 0.5, 1, 5, 10, 100]},
+        # {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4], 'gamma': [0.01, 1, 5, 10, 100]}
+    ]
+    # define a scoring function
+    score_func = make_scorer(pearson_cor, greater_is_better=True)
+    svc = SVC()
+    # Get the best model through CV
+    best_svc, best_params_clf = cross_val(svc, params=parameters, X_train=X,
+                                          y_train=y, score=score_func, cv=cv, n_jobs=-1)
+
+    title_clf = r"Learning Curves (SVC, rbf kernel)"
+    plot_learning_curve(best_svc, title_clf, X, y, ylim=(0.0, 1.0),
+                        cv=cv, n_jobs=4, scoring=score_func)
+    plt.show()
+    print("best svc:", best_svc)
+    print("best para:", best_params_clf)
+    return best_svc
+
+
+if __name__ == '__main__':
     conn = pymysql.connect(host="127.0.0.1",
                            database='essaydata',
                            port=3306,
@@ -72,90 +115,53 @@ if __name__ == '__main__':
                            password='',
                            charset='utf8')
 
-    # get features and tags for classification task
-    # X_cf, y_cf = extract_data()
-    # X_cf_minmax = min_max_scaler.fit_transform(X_cf)
-    parameters = [
-            {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
-            {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 1000], 'gamma': [0.01, 0.5, 1, 5, 10, 100]},
-            # {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4], 'gamma': [0.01, 1, 5, 10, 100]}
-        ]
-
     cv = ShuffleSplit(n_splits=10, test_size=0.3, random_state=0)
 
-    # get the best classifier through CV
-    # svc = svm.SVC(probability=False)
-    # best_clf, best_params = cross_val(svc, params=parameters, X_train=X_cf_minmax,
-    #                                   y_train=y_cf, score="accuracy", cv=cv)
-    # print("best clf:", best_clf, "best para:", best_params)
-    #
-    # title = r"Learning Curves (SVM, linear kernel, C=1000)"
-    # plot_learning_curve(best_clf, title, X_cf_minmax, y_cf, ylim=(0.3, 1.01),
-    #                     cv=cv, n_jobs=4)
-    # plt.show()
-    # learning_plot(best_clf, X_cf_minmax, y_cf, "accuracy", cv)
-    # validation_plot(best_clf, X_cf_minmax, y_cf)
-
-    # define a scoring function
-    score_func = make_scorer(pearson_cor, greater_is_better=True)
-
-    # Regression model
+    # extract and transform data
+    features0 = ['bleu']
     features1 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio']
     features2 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade']
-    features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'np', 'vp']
-    X_rg, y_rg = extract_data(conn, course="202英语二", features=features2)
+    features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency']
+    features4 = ['bleu', 'vecsim', 'lsagrade', 'fluency']
+    features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency', 'np', 'vp']
+
+    # Regression model
+    X_rg, y_rg = extract_data(conn, course="202英语二", features=features_all)
 
     scaler = MinMaxScaler()
     X_rg_scaled = scaler.fit_transform(X_rg)
-    svr = SVR()
+    # features selection
+    best_feature_num = -1
+    max_score = 0
+    best_selection = f_regression
+    # for s in [f_regression, mutual_info_regression]:
+    #     for n in range(4, 10):
+    selectionKBest = SelectKBest(mutual_info_regression, k=7)
 
-    # Get the best model through CV
-    best_svr, best_params_rg = cross_val(svr, params=parameters, X_train=X_rg_scaled,
-                                         y_train=y_rg, score=score_func, cv=cv, n_jobs=-1)
-    print("best svr:", best_svr)
-    print("best para:", best_params_rg)
+    # selectionKBest.fit(X_rg_scaled, y_rg)
+    # print(selectionKBest.scores_)
+    X_rg_selected = selectionKBest.fit_transform(X_rg_scaled, y_rg)
+    # selectionKBest.fit(X_rg_selected, y_rg)
+    # print(selectionKBest.scores_)
+    svr, test_scores = regression(X_rg_selected, y_rg, cv=cv)
+    print(test_scores)
+            # print("s:", s, "n:", n, "test_scores", test_scores)
+            # if test_scores[-1] > max_score:
+            #     best_feature_num = n
+            #     max_score = max(max_score, test_scores[-1])
+            #     best_selection = s
+    # print("best selection:", best_selection)
+    # print("selected feature number:", best_feature_num, "max test scores:", max_score)
 
-    title_rg = r"Learning Curves (SVR, rbf kernel)"
-    plot_learning_curve(best_svr, title_rg, X_rg_scaled, y_rg, ylim=(0.0, 1.0),
-                        cv=cv, n_jobs=4, scoring=score_func)
-    plt.show()
-
-    # X_train, X_test, y_train, y_test = train_test_split(X_rg_scaled, y_rg, test_size=0.33, random_state=42)
-    X_train = X_rg_scaled[60:]
-    y_train = y_rg[60:]
-    X_test = X_rg_scaled[:60]
-    y_test = y_rg[:60]
-    best_svr.fit(X_train, y_train)
-
-    y_predict = best_svr.predict(X_test)
-    print(pearson_cor(y_test, y_predict))
-
-    # conn = pymysql.connect(host="127.0.0.1",
-    #                        database='essaydata',
-    #                        port=3306,
-    #                        user='root',
-    #                        password='',
-    #                        charset='utf8')
-    # cur = conn.cursor()
-
-    # sql = "SELECT textid FROM features WHERE 1gram=%s AND 2gram=%s AND 3gram=%s AND 4gram=%s"
-    # sql1 = "SELECT textid, text FROM detection WHERE textid=%s"
-    # for index in range(len(y_test)):
-    #     if abs(y_test[index] - y_predict[index]) > 0.3:
-    #
-    #         print("target:", y_test[index], "predict:", y_predict[index])
-    #         # print("features:", X_test[index])
-    #
-    #         try:
-    #             cur.execute(sql1, textids_test[index])
-    #             print("fail detection:", cur.fetchall())
-    #             print()
-    #         except Exception:
-    #             print("Error getting detection..", traceback.print_exc())
-    #
-    # cur.close()
-    # conn.close()
-    #
-    #
-
+    # classfication model
+    # X_clf, y = extract_data(conn, course="202英语二", features=features3)
+    # scaler = MinMaxScaler()
+    # X_clf_scaled = scaler.fit_transform(X_clf)
+    # y_clf = [str(data) for data in y]
+    # svc = classification(X_clf_scaled, y_clf, cv=cv)
+    # X_train, X_test, y_train, y_test = train_test_split(X_clf_scaled, y_clf, test_size=0.3, random_state=42)
+    # svc.fit(X_train, y_train)
+    # y_predict = svc.predict(X_test)
+    # print(pearson_cor(y_test, y_predict))
+    # print(y_predict)
 

@@ -258,25 +258,29 @@ def get_bleu_score(refs, answer):
             eg. [1gram rate, 2gram rate, 3gram rate, 4gram rate]
     """
     score_list = [0] * 4
+    bleu = 0
     for ref in refs:
         ref_ngram = ref.ngram
         answer_ngram = answer.ngram
         total_count = [0] * 4
         match_count = [0] * 4
+        addone_total_count = [0] * 4
         for key in answer_ngram.keys():
             n = len(key.split(" ")) - 1   # key is (n+1)gram
-            total_count[n] += 1
+            total_count[n] += answer_ngram[key]
+            addone_total_count[n] += answer_ngram[key] + 1   # add-one-smoothing
             if key in ref_ngram.keys():
                 match_count[n] += min(answer_ngram[key], ref_ngram[key])
                 # print("Got one:", key, "+", min(answer_ngram[key], ref_ngram[key]))
         # bleu formula.
-        if match_count[0] * match_count[1] * match_count[2] * match_count[3] == 0:
-            bleu_score = 0
-        else:
-            bleu_score = math.exp(sum([math.log(float(a)/b) for a, b in zip(match_count, total_count)]) * 0.25)
+        addone_match_count = [c+1 for c in match_count]   # add-one-smoothing
+        # punishing for being too short
+        bp = 1 if answer.seg_length > ref.seg_length else math.exp(1 - ref.seg_length / answer.seg_length)
+        bleu_score = bp * math.exp(sum([math.log(float(a)/b) for a, b in zip(addone_match_count, addone_total_count)]) * 0.25)
+        bleu = max(bleu, bleu_score)
         for i in range(4):
             score_list[i] = max(float(score_list[i]), float(match_count[i]) / total_count[i])
-    return score_list, bleu_score
+    return score_list, bleu
 
 
 def extract_data(conn, course, features):
