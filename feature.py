@@ -326,7 +326,7 @@ def extract_data(conn, course, features):
         print("Error getting features...", traceback.print_exc())
     finally:
         cur.close()
-        conn.close()
+        # conn.close()
 
 
 def cor_of_features(conn, courseid, features):

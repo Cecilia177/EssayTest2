@@ -136,20 +136,26 @@ if __name__ == '__main__':
     best_selection = f_regression
     # for s in [f_regression, mutual_info_regression]:
     #     for n in range(4, 10):
-    selectionKBest = SelectKBest(mutual_info_regression, k=7)
+    selectionKBest = SelectKBest(mutual_info_regression, k=6)
 
-    # selectionKBest.fit(X_rg_scaled, y_rg)
-    # print(selectionKBest.scores_)
-    X_rg_selected = selectionKBest.fit_transform(X_rg_scaled, y_rg)
-    # selectionKBest.fit(X_rg_selected, y_rg)
-    # print(selectionKBest.scores_)
+    selectionKBest.fit(X_rg_scaled, y_rg)
+    print(selectionKBest.scores_)
+    X_rg_selected = selectionKBest.transform(X_rg_scaled)
+    print(X_rg_selected.shape)
     svr, test_scores = regression(X_rg_selected, y_rg, cv=cv)
     print(test_scores)
-            # print("s:", s, "n:", n, "test_scores", test_scores)
-            # if test_scores[-1] > max_score:
-            #     best_feature_num = n
-            #     max_score = max(max_score, test_scores[-1])
-            #     best_selection = s
+
+    X_rg2, y_rg2 = extract_data(conn, course="201英语一", features=features_all)
+    X_rg2_scaled = scaler.fit_transform(X_rg2)
+    X_rg2_selected = selectionKBest.fit_transform(X_rg2_scaled, y_rg2)
+    print(X_rg2_selected.shape)
+    y2_predict = svr.predict(X_rg2_selected)
+    print(pearson_cor(y_rg2, y2_predict))
+    # print("s:", s, "n:", n, "test_scores", test_scores)
+    #         if test_scores[-1] > max_score:
+    #             best_feature_num = n
+    #             max_score = max(max_score, test_scores[-1])
+    #             best_selection = s
     # print("best selection:", best_selection)
     # print("selected feature number:", best_feature_num, "max test scores:", max_score)
 
