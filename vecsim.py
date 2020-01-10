@@ -11,7 +11,7 @@ import random
 
 def vector_similarity(id1, id2, vecs, stopwords, tf_idf, keys, language):
     """
-    Calculate two sentences
+    Calculate similarity between 2 sentences
     Parameters:
         id1, id2: Integer, sentence id (column index).
         vecs: word_vectors file.

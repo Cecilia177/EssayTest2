@@ -365,15 +365,14 @@ if __name__ == '__main__':
     # word_vectors = KeyedVectors.load("./model/vectors.kv")
     # zh_model = StanfordCoreNLP(r"H:\Download\stanford-corenlp-full-2018-02-27", lang='zh')
     # cal_features(conn=conn, courseid="201英语一", word2vec_model=word_vectors, nlp_model=zh_model)
-    # feature, score = extract_data(conn=conn, course="201英语一")
-
-    word_vectors_en = KeyedVectors.load("./model/vectors_en.kv")
-    en_model = StanfordCoreNLP(r"H:\Download\stanford-corenlp-full-2018-02-27")
-
-    cal_features(conn=conn, courseid="202英语二", word2vec_model=word_vectors_en, nlp_model=en_model)
-    # feature, score = extract_data(conn=conn, course="202英语二")
     features = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'bleu']
-    cor_of_features(conn=conn, courseid="202英语二", features=features)
+    cor_of_features(conn=conn, courseid="201英语一", features=features)
+
+    # word_vectors_en = KeyedVectors.load("./model/vectors_en.kv")
+    # en_model = StanfordCoreNLP(r"H:\Download\stanford-corenlp-full-2018-02-27")
+    # cal_features(conn=conn, courseid="202英语二", word2vec_model=word_vectors_en, nlp_model=en_model)
+    # features = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'bleu']
+    # cor_of_features(conn=conn, courseid="202英语二", features=features)
 
 
 

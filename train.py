@@ -122,12 +122,13 @@ if __name__ == '__main__':
     features1 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio']
     features2 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade']
     features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency']
-    features4 = ['bleu', 'vecsim', 'lsagrade', 'fluency']
+    features4 = ['bleu', 'vecsim', 'lsagrade', 'fluency', 'np', 'vp']
     features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency', 'np', 'vp']
 
     # Regression model
-    X_rg, y_rg = extract_data(conn, course="202英语二", features=features_all)
-
+    X_rg, y_rg = extract_data(conn, course="201英语一", features=features_all)
+    X_rg = X_rg[:460]
+    y_rg = y_rg[:460]
     scaler = MinMaxScaler()
     X_rg_scaled = scaler.fit_transform(X_rg)
     # features selection
@@ -136,21 +137,16 @@ if __name__ == '__main__':
     best_selection = f_regression
     # for s in [f_regression, mutual_info_regression]:
     #     for n in range(4, 10):
-    selectionKBest = SelectKBest(mutual_info_regression, k=6)
+    # selectionKBest = SelectKBest(mutual_info_regression, k=10)
+    #
+    # selectionKBest.fit(X_rg_scaled, y_rg)
+    # print(selectionKBest.scores_)
+    # X_rg_selected = selectionKBest.transform(X_rg_scaled)
+    # print(X_rg_selected.shape)
+    svr, test_scores = regression(X_rg_scaled, y_rg, cv=cv)
+    print("test scores:", test_scores)
 
-    selectionKBest.fit(X_rg_scaled, y_rg)
-    print(selectionKBest.scores_)
-    X_rg_selected = selectionKBest.transform(X_rg_scaled)
-    print(X_rg_selected.shape)
-    svr, test_scores = regression(X_rg_selected, y_rg, cv=cv)
-    print(test_scores)
 
-    X_rg2, y_rg2 = extract_data(conn, course="201英语一", features=features_all)
-    X_rg2_scaled = scaler.fit_transform(X_rg2)
-    X_rg2_selected = selectionKBest.fit_transform(X_rg2_scaled, y_rg2)
-    print(X_rg2_selected.shape)
-    y2_predict = svr.predict(X_rg2_selected)
-    print(pearson_cor(y_rg2, y2_predict))
     # print("s:", s, "n:", n, "test_scores", test_scores)
     #         if test_scores[-1] > max_score:
     #             best_feature_num = n
