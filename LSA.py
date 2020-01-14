@@ -69,7 +69,11 @@ class LSA(object):
         rows, cols = self.A.shape
         for i in range(rows):
             for j in range(cols):
-                self.A[i, j] = (float(self.A[i, j]) / WordsPerDoc[j]) * math.log(float(cols) / DocsPerWord[i])
+                # print(WordsPerDoc[j], ":", DocsPerWord[i])
+                if WordsPerDoc[j] == 0:   # if doc j contains no words.
+                    self.A[i, j] = 0
+                else:
+                    self.A[i, j] = (float(self.A[i, j]) / WordsPerDoc[j]) * math.log(float(cols) / DocsPerWord[i])
 
     def svd_cal(self):
         """

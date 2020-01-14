@@ -35,6 +35,8 @@ def get_fluency_score(refs, sentence):
         sentence: Class Sentence
     """
     max_score = 0
+    if sentence.seg_length == 0:
+        return max_score
     for ref in refs:
         ref.get_part_of_speech()
         sentence.get_part_of_speech()

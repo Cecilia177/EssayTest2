@@ -80,7 +80,7 @@ def regression(X, y, cv):
 
     title_rg = r"Learning Curves (SVR, rbf kernel)"
     plt, test_scores = plot_learning_curve(best_svr, title_rg, X, y, ylim=(0.0, 1.0),
-                        cv=cv, n_jobs=4, scoring=score_func)
+                                           cv=cv, n_jobs=4, scoring=score_func)
     plt.show()
     return best_svr, test_scores
 
@@ -88,7 +88,8 @@ def regression(X, y, cv):
 def classification(X, y, cv):
     parameters = [
         {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
-        {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 400, 1000, 2500], 'gamma': [0.01, 0.5, 1, 5, 10, 100]},
+        {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 400, 1000, 2500],
+         'gamma': [0.01, 0.5, 1, 5, 10, 100]},
         # {'kernel': ['poly'], 'C': [1, 10, 100, 1000], 'degree': [3, 4], 'gamma': [0.01, 1, 5, 10, 100]}
     ]
     # define a scoring function
@@ -122,13 +123,15 @@ if __name__ == '__main__':
     features1 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio']
     features2 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade']
     features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency']
-    features4 = ['bleu', 'vecsim', 'lsagrade', 'fluency', 'np', 'vp']
-    features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency', 'np', 'vp']
+    features4 = ['bleu', 'lengthratio', 'vecsim', 'lsagrade', 'keymatch', 'np', 'vp']
+    features5 = ['keymatch']
+    features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'keymatch']
 
     # Regression model
     X_rg, y_rg = extract_data(conn, course="201英语一", features=features_all)
-    X_rg = X_rg[:460]
-    y_rg = y_rg[:460]
+    # X_rg = X_rg[:113]
+    # y_rg = y_rg[:113]
+    print(len(X_rg))
     scaler = MinMaxScaler()
     X_rg_scaled = scaler.fit_transform(X_rg)
     # features selection
@@ -145,7 +148,6 @@ if __name__ == '__main__':
     # print(X_rg_selected.shape)
     svr, test_scores = regression(X_rg_scaled, y_rg, cv=cv)
     print("test scores:", test_scores)
-
 
     # print("s:", s, "n:", n, "test_scores", test_scores)
     #         if test_scores[-1] > max_score:
@@ -166,4 +168,3 @@ if __name__ == '__main__':
     # y_predict = svc.predict(X_test)
     # print(pearson_cor(y_test, y_predict))
     # print(y_predict)
-

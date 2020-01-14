@@ -9,6 +9,7 @@ from gensim.models import KeyedVectors
 from fluency import get_fluency_score
 from stanfordcorenlp import StanfordCoreNLP
 from partofspeech import get_phrases_ratio
+from dictionany import get_key_match
 import math
 
 pymysql.converters.encoders[np.float64] = pymysql.converters.escape_float
@@ -50,7 +51,7 @@ def cal_features(conn, courseid, word2vec_model, nlp_model):
         mylsa = build_svd(doc_matrix)
         # np.savetxt("C:\\Users\\Cecilia\\Desktop\\keys_en.txt", mylsa.keys, fmt="%s")
         references = doc_matrix[: ref_num]  # terms in references are Class Sentence and are preprocessed already.
-
+        original = get_original_text(conn=conn, courseid=courseid, questionid=questionid)
         for i in range(ref_num, len(doc_matrix)):
             # if record_count == 460:
             #     break
@@ -70,6 +71,7 @@ def cal_features(conn, courseid, word2vec_model, nlp_model):
             fluency = get_fluency_score(refs=references, sentence=current_answer)
             np_length_ratio = get_phrases_ratio(phrase="NP", refs=references, answer=current_answer, model=nlp_model)
             vp_length_ratio = get_phrases_ratio(phrase="VP", refs=references, answer=current_answer, model=nlp_model)
+            keymatch = get_key_match(original=original, trans=current_answer, vecs=word2vec_model) if courseid == "201英语一" else None
             features['1gram'] = ngrams[0]
             features['2gram'] = ngrams[1]
             features['3gram'] = ngrams[2]
@@ -81,6 +83,7 @@ def cal_features(conn, courseid, word2vec_model, nlp_model):
             features['fluency'] = fluency
             features['np'] = np_length_ratio
             features['vp'] = vp_length_ratio
+            features['keymatch'] = keymatch
             # Insert features of a certain text into DB
             if insert_features(course=courseid, conn=conn, features=features):
                 record_count += 1
@@ -175,6 +178,37 @@ def build_svd(docs_list):
     return lsa
 
 
+def get_original_text(conn, courseid, questionid):
+    """
+    Parameters:
+        conn: A mysql connection
+        courseid: String, '201英语一' or '202英语二'
+        questionid: Integer
+
+    Return:
+        original text of translation questions of '201英语一', class Sentence after preprocessing.
+        None if courseid is '202英语二'
+
+    """
+    original_text = ""
+    if courseid == '202英语二':
+        return None
+    try:
+        get_original_sql = "SELECT original From standards WHERE courseid=%s AND questionid=%s"
+        get_original_cur = conn.cursor()
+        get_original_cur.execute(get_original_sql, (courseid, questionid))
+        original_text = get_original_cur.fetchone()[0]
+    except Exception as e:
+        print("Error getting original text of courseid", courseid, "questionid", questionid)
+        print(traceback.print_exc())
+    finally:
+        get_original_cur.close()
+    # print(original_text)
+    original = Sentence(text=original_text, language='en')
+    original.preprocess()
+    return original
+
+
 def get_docs_list(conn, courseid, questionid):
     """
     Parameters:
@@ -259,6 +293,8 @@ def get_bleu_score(refs, answer):
     """
     score_list = [0] * 4
     bleu = 0
+    if answer.seg_length == 0:
+        return score_list, bleu
     for ref in refs:
         ref_ngram = ref.ngram
         answer_ngram = answer.ngram
@@ -315,9 +351,11 @@ def extract_data(conn, course, features):
         for text_id in features_data[:, 0]:
             cur.execute(get_questionid_sql, text_id)
             question_id = cur.fetchone()[0]
-            get_score_sql = "SELECT z" + str(question_id) + " FROM scores, detection WHERE detection.textid=%s " \
-                            "and scores.studentid=detection.studentid"
-            cur.execute(get_score_sql, text_id)
+            # get_score_sql = "SELECT z" + str(question_id) + " FROM scores, detection WHERE detection.textid=%s " \
+            #                 "and scores.studentid=detection.studentid"
+            get_score_sql = "SELECT finalscore FROM detailed_score AA, detection BB WHERE BB.textid=%s and " \
+                            "AA.studentid=BB.studentid AND AA.questionid=%s"
+            cur.execute(get_score_sql, (text_id, question_id))
             score = cur.fetchone()[0]
             score_list.append(score)
             score_text[text_id] = score
@@ -365,7 +403,7 @@ if __name__ == '__main__':
     # word_vectors = KeyedVectors.load("./model/vectors.kv")
     # zh_model = StanfordCoreNLP(r"H:\Download\stanford-corenlp-full-2018-02-27", lang='zh')
     # cal_features(conn=conn, courseid="201英语一", word2vec_model=word_vectors, nlp_model=zh_model)
-    features = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'bleu']
+    features = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'bleu', 'keymatch']
     cor_of_features(conn=conn, courseid="201英语一", features=features)
 
     # word_vectors_en = KeyedVectors.load("./model/vectors_en.kv")

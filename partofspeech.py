@@ -43,11 +43,13 @@ def get_phrases(phrase, sentence, model):
                     nps.append(temp)
     print(nps)
     for n in nps:
-        total_len += len(n.split(" ")) if sentence.flag == "en" else len(n.replace(" ", ""))
+        total_len += len(n.split(" ")) if sentence.language == "en" else len(n.replace(" ", ""))
     return float(total_len) / len(nps) if len(nps) != 0 else 0
 
 
 def get_phrases_ratio(phrase, refs, answer, model):
+    if answer.seg_length == 0:
+        return 0
     ref_phrase = 0
     for f in refs:
         ref_phrase += get_phrases(phrase, f, model)
