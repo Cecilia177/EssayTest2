@@ -7,4 +7,4 @@ import correlation
 
 a = np.loadtxt("C:\\Users\\Cecilia\\Desktop\\Untitled.txt")
 print(a.shape)
-print(correlation.pearson_cor(a[:, 0], a[:, 1]))
+print(10.0 ** -np.arange(1, 7))

@@ -10,6 +10,9 @@ from sklearn.metrics import make_scorer
 from learningcurve import plot_learning_curve
 from sklearn.svm import SVR, SVC
 from sklearn.feature_selection import RFECV, SelectKBest, f_regression, mutual_info_regression
+from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
+from sklearn.pipeline import make_pipeline
 import pymysql
 import traceback
 import math
@@ -108,6 +111,33 @@ def classification(X, y, cv):
     return best_svc
 
 
+def mlp_regression(X, y, cv):
+    parameters = {
+        'alpha': 10.0 ** -np.arange(1, 7)
+    }
+    score_func = make_scorer(pearson_cor, greater_is_better=True)
+    mlp = MLPRegressor(max_iter=800, hidden_layer_sizes=(200, 200), activation='tanh')
+    best_mlp, best_params_mlp = cross_val(mlp, params=parameters, X_train=X,
+                                          y_train=y, score=score_func, cv=cv, n_jobs=-1)
+    title = r"Learning curves (MLP regression)"
+    plt, test_scores = plot_learning_curve(best_mlp, title, X, y, ylim=(0.0, 1.0),
+                                           cv=cv, n_jobs=4, scoring=score_func)
+    plt.show()
+    print("best mlp:", best_mlp)
+    print("best para:", best_params_mlp)
+    return best_mlp, test_scores
+
+
+def random_forest(X, y, cv):
+    score_func = make_scorer(pearson_cor, greater_is_better=True)
+    rfg = ExtraTreesRegressor(max_features=8)
+    title = r"Learning curves (Random Forest)"
+    plt, test_scores = plot_learning_curve(rfg, title, X, y, ylim=(0.0, 1.0),
+                                           cv=cv, n_jobs=4, scoring=score_func)
+    plt.show()
+    return rfg, test_scores
+
+
 if __name__ == '__main__':
     conn = pymysql.connect(host="127.0.0.1",
                            database='essaydata',
@@ -125,15 +155,21 @@ if __name__ == '__main__':
     features3 = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'vecsim', 'lsagrade', 'fluency']
     features4 = ['bleu', 'lengthratio', 'vecsim', 'lsagrade', 'keymatch', 'np', 'vp']
     features5 = ['keymatch']
-    features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp', 'keymatch']
+    features_all = ['1gram', '2gram', '3gram', '4gram', 'lengthratio', 'lsagrade', 'vecsim', 'fluency', 'np', 'vp',
+                    'keymatch']
 
     # Regression model
     X_rg, y_rg = extract_data(conn, course="201英语一", features=features_all)
-    # X_rg = X_rg[:113]
-    # y_rg = y_rg[:113]
     print(len(X_rg))
-    scaler = MinMaxScaler()
+
+    # multi-layer perception
+
+    # scaler = MinMaxScaler()
+    scaler = StandardScaler()
     X_rg_scaled = scaler.fit_transform(X_rg)
+
+
+
     # features selection
     best_feature_num = -1
     max_score = 0
@@ -141,13 +177,19 @@ if __name__ == '__main__':
     # for s in [f_regression, mutual_info_regression]:
     #     for n in range(4, 10):
     # selectionKBest = SelectKBest(mutual_info_regression, k=10)
-    #
     # selectionKBest.fit(X_rg_scaled, y_rg)
     # print(selectionKBest.scores_)
     # X_rg_selected = selectionKBest.transform(X_rg_scaled)
     # print(X_rg_selected.shape)
-    svr, test_scores = regression(X_rg_scaled, y_rg, cv=cv)
+    rfr, test_scores = random_forest(X_rg_scaled, y_rg, cv=cv)
+    print(rfr)
     print("test scores:", test_scores)
+
+    X_train, X_test, y_train, y_test = train_test_split(X_rg_scaled, y_rg, test_size=0.2, random_state=42)
+    rfr.fit(X_train, y_train)
+    print(rfr.feature_importances_)
+    print("number of features:", rfr.n_features_)
+    print("pearson:", pearson_cor(y_test, rfr.predict(X_test)))
 
     # print("s:", s, "n:", n, "test_scores", test_scores)
     #         if test_scores[-1] > max_score:
