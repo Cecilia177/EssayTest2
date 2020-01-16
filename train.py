@@ -116,7 +116,7 @@ def mlp_regression(X, y, cv):
         'alpha': 10.0 ** -np.arange(1, 7)
     }
     score_func = make_scorer(pearson_cor, greater_is_better=True)
-    mlp = MLPRegressor(max_iter=800, hidden_layer_sizes=(200, 200), activation='logistic')
+    mlp = MLPRegressor(max_iter=800, hidden_layer_sizes=(200, 200), activation='tanh')
     best_mlp, best_params_mlp = cross_val(mlp, params=parameters, X_train=X,
                                           y_train=y, score=score_func, cv=cv, n_jobs=-1)
     title = r"Learning curves (MLP regression)"
@@ -159,7 +159,7 @@ if __name__ == '__main__':
                     'keymatch']
 
     # Regression model
-    X_rg, y_rg = extract_data(conn, course="201英语一", features=features_all)
+    X_rg, y_rg = extract_data(conn, course="201英语一（副）", features=features_all)
     print(len(X_rg))
 
     # multi-layer perception

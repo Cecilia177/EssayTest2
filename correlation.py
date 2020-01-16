@@ -23,7 +23,7 @@ def pearson_cor(y_true, y_predict):
 
 def spearman_cor(y_true, y_predict):
     """
-    The same like the above function pearson except that it's Spearman correlation coefficient value here.
+    The same as the above function pearson_cor except that it's Spearman correlation coefficient value here.
     """
     if type(y_true) == str:
         y_true = [float(s) for s in y_true]
@@ -41,6 +41,8 @@ def get_correlation_of_grades(course, questionids, col_type):
         course: courseid
         questionids: A list of questionid
         col_type: A correlation calculation function, callable.
+    Return:
+        The col_type value.
     """
     conn = pymysql.connect(host="127.0.0.1",
                            database='essaydata',
@@ -48,8 +50,8 @@ def get_correlation_of_grades(course, questionids, col_type):
                            user='root',
                            password='',
                            charset='utf8')
-    sql = "SELECT scoreof_1, scoreof_2 FROM detailed_score AA, detection BB WHERE BB.courseid=%s AND BB.questionid=%s " \
-          "AND BB.studentid = AA.studentid AND AA.questionid=BB.questionid AND AA.courseid=BB.courseid"
+    sql = "SELECT scoreof_1, scoreof_2 FROM detailed_score AA, detection_copy1 BB WHERE BB.courseid=%s AND BB.questionid=%s " \
+          "AND BB.studentid = AA.studentid AND AA.questionid=BB.questionid AND AA.courseid=BB.courseid "
     cur = conn.cursor()
     all_scores = None
     try:
@@ -70,6 +72,6 @@ def get_correlation_of_grades(course, questionids, col_type):
 
 if __name__ == '__main__':
     # get correlation of two teachers' correlation
-    print(get_correlation_of_grades("201英语一", range(1, 2), pearson_cor))
+    print(get_correlation_of_grades("201英语一", range(1, 6), pearson_cor))
 
 
