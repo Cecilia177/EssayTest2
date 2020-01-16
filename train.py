@@ -67,7 +67,7 @@ def plot(x_value, y_value_list):
     plt.show()
 
 
-def regression(X, y, cv):
+def support_machine_regression(X, y, cv):
     parameters = [
         {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
         {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 1000], 'gamma': [0.01, 0.5, 1, 5, 10, 100]},
@@ -88,7 +88,7 @@ def regression(X, y, cv):
     return best_svr, test_scores
 
 
-def classification(X, y, cv):
+def support_machine_classification(X, y, cv):
     parameters = [
         {'kernel': ['linear'], 'C': [0.1, 1, 10, 100, 1000]},
         {'kernel': ['rbf'], 'C': [0.1, 0.2, 0.25, 0.35, 0.5, 1, 10, 100, 400, 1000, 2500],
@@ -116,7 +116,7 @@ def mlp_regression(X, y, cv):
         'alpha': 10.0 ** -np.arange(1, 7)
     }
     score_func = make_scorer(pearson_cor, greater_is_better=True)
-    mlp = MLPRegressor(max_iter=800, hidden_layer_sizes=(200, 200), activation='tanh')
+    mlp = MLPRegressor(max_iter=800, hidden_layer_sizes=(200, 200), activation='logistic')
     best_mlp, best_params_mlp = cross_val(mlp, params=parameters, X_train=X,
                                           y_train=y, score=score_func, cv=cv, n_jobs=-1)
     title = r"Learning curves (MLP regression)"

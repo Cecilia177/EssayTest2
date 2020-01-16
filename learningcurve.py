@@ -65,7 +65,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
         (default: np.linspace(0.1, 1.0, 5))
     """
     if axes is None:
-        _, axes = plt.subplots(3, 1, figsize=(10, 20))
+        _, axes = plt.subplots(4, 1, figsize=(10, 27))
 
     axes[0].set_title(title)
     if ylim is not None:
@@ -84,7 +84,14 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     fit_times_mean = np.mean(fit_times, axis=1)
     fit_times_std = np.std(fit_times, axis=1)
 
-    # Plot learning curve
+    _, default_train_scores, default_test_scores = \
+        learning_curve(estimator, X, y, cv=cv, n_jobs=n_jobs,
+                       train_sizes=train_sizes)
+    train_errors_mean = 1 - np.mean(default_train_scores, axis=1)
+
+    test_errors_mean = 1 - np.mean(default_test_scores, axis=1)
+
+    # Plot learning scores
     axes[0].grid()
     axes[0].fill_between(train_sizes, train_scores_mean - train_scores_std,
                          train_scores_mean + train_scores_std, alpha=0.1,
@@ -92,33 +99,42 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None,
     axes[0].fill_between(train_sizes, test_scores_mean - test_scores_std,
                          test_scores_mean + test_scores_std, alpha=0.1,
                          color="g")
-    # print("train sizes:", train_sizes, "train scores:", train_scores_mean)
     axes[0].plot(train_sizes, train_scores_mean, 'o-', color="r",
                  label="Training score")
     axes[0].plot(train_sizes, test_scores_mean, 'o-', color="g",
-                 label="Cross-validation score")
+                 label="Test score")
     axes[0].legend(loc="best")
 
-    # Plot n_samples vs fit_times
+    # Plot learning errors
     axes[1].grid()
-    axes[1].plot(train_sizes, fit_times_mean, 'o-')
-    axes[1].fill_between(train_sizes, fit_times_mean - fit_times_std,
-                         fit_times_mean + fit_times_std, alpha=0.1)
+    axes[1].plot(train_sizes, train_errors_mean, 'o-', color="r",
+                 label="Training error")
+    axes[1].plot(train_sizes, test_errors_mean, 'o-', color="g",
+                 label="Test error")
+    axes[1].legend(loc="best")
     axes[1].set_xlabel("Training examples")
-    axes[1].set_ylabel("fit_times")
-    axes[1].set_title("Scalability of the model")
+    axes[1].set_ylabel("Error")
+    axes[1].set_title("Loss function")
+
+    # Plot n_samples vs fit_times
+    axes[2].grid()
+    axes[2].plot(train_sizes, fit_times_mean, 'o-')
+    axes[2].fill_between(train_sizes, fit_times_mean - fit_times_std,
+                         fit_times_mean + fit_times_std, alpha=0.1)
+    axes[2].set_xlabel("Training examples")
+    axes[2].set_ylabel("fit_times")
+    axes[2].set_title("Scalability of the model")
 
     # Plot fit_time vs score
-    axes[2].grid()
-    axes[2].plot(fit_times_mean, test_scores_mean, 'o-')
-    axes[2].fill_between(fit_times_mean, test_scores_mean - test_scores_std,
+    axes[3].grid()
+    axes[3].plot(fit_times_mean, test_scores_mean, 'o-')
+    axes[3].fill_between(fit_times_mean, test_scores_mean - test_scores_std,
                          test_scores_mean + test_scores_std, alpha=0.1)
-    axes[2].set_xlabel("fit_times")
-    axes[2].set_ylabel("Score")
-    axes[2].set_title("Performance of the model")
+    axes[3].set_xlabel("fit_times")
+    axes[3].set_ylabel("Score")
+    axes[3].set_title("Performance of the model")
 
     return plt, test_scores_mean
-
 
 # fig, axes = plt.subplots(3, 2, figsize=(10, 15))
 #
